@@ -1,0 +1,6 @@
+{
+  "name": "MADAME NOCTURNE — Зөгнөгч",
+  "description": "Corpse Bride болон Tim Burton-ийн готик ертөнцөөс сэдэвлэсэн интерактив Halloween зөгнөгч, болор бөмбөлөг, гурван хөзрийн Tarot зөгнөл, чихрийн шагналууд.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
