@@ -6,25 +6,29 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GothicRoomBackground } from './components/GothicRoomBackground';
 import { HeaderNav } from './components/HeaderNav';
+import { BottomTabBar } from './components/BottomTabBar';
 import { CrystalBall } from './components/CrystalBall';
 import { FortuneDisplay } from './components/FortuneDisplay';
 import { ThreeCardTarot } from './components/ThreeCardTarot';
 import { FortuneHistoryModal } from './components/FortuneHistoryModal';
 import { CandyCelebration } from './components/CandyCelebration';
-import { FORTUNES } from './data/fortunes';
 import { Fortune, HistoryRecord, ActiveTab } from './types';
 import { gothicAudio } from './utils/audio';
 import {
   getStoredCandy,
-  addCandy,
-  checkDailyFreeAvailable,
-  recordDailyUsed
+  addCandy
 } from './utils/candyStorage';
 import {
   getFortuneHistory,
   saveFortuneToHistory,
   clearFortuneHistory
 } from './utils/historyStorage';
+import {
+  getRemainingDivinations,
+  canDivinate,
+  recordDivinationUsed,
+  pickSuperRandomFortune
+} from './utils/divinationLimit';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('crystal');
@@ -36,7 +40,7 @@ export default function App() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRecords, setHistoryRecords] = useState<HistoryRecord[]>(() => getFortuneHistory());
   const [celebrationAmount, setCelebrationAmount] = useState<number | null>(null);
-  const [dailyStatus, setDailyStatus] = useState(() => checkDailyFreeAvailable());
+  const [remainingDivinations, setRemainingDivinations] = useState<number>(() => getRemainingDivinations());
 
   const lastFortuneIdRef = useRef<string | null>(null);
 
@@ -55,6 +59,10 @@ export default function App() {
       if (e.key === 'halloween_candy_count' || e.key === 'candy_count') {
         setCandyCount(getStoredCandy());
       }
+      // Also update remaining limit if updated in another tab
+      if (e.key === 'nocturne_divination_daily_tracker') {
+        setRemainingDivinations(getRemainingDivinations());
+      }
     };
 
     window.addEventListener('candy_count_updated', handleCandyUpdate);
@@ -66,9 +74,10 @@ export default function App() {
     };
   }, []);
 
-  // Divination logic
+  // Divination logic: Cryptographically random, max 3 times per day limit
   const handleDivinate = useCallback(() => {
     if (isDivining) return;
+    if (!canDivinate()) return;
 
     // Start divination state
     setIsDivining(true);
@@ -82,32 +91,18 @@ export default function App() {
     }, 1400);
 
     setTimeout(() => {
-      // Pick strictly among fortunes 1-50, avoiding immediate repeat
-      // Fortune #51 ("Баяр хүргэе 500 зоос хожлоо") is kept extremely rare as requested ("51 дэхийг аль болох хэлээд хэрэггүй")
-      const regularFortunes = FORTUNES.filter(f => f.id !== 'f-51');
-      const available = regularFortunes.filter(f => f.id !== lastFortuneIdRef.current);
-
-      let selected: Fortune;
-      const rollJackpot = Math.random() < 0.003; // Ultra rare 0.3% chance for #51
-
-      if (rollJackpot) {
-        selected = FORTUNES.find(f => f.id === 'f-51') || available[0];
-      } else {
-        selected = available[Math.floor(Math.random() * available.length)];
-      }
-
+      // Pick super random fortune using cryptographically secure random values
+      const selected = pickSuperRandomFortune();
       lastFortuneIdRef.current = selected.id;
+
+      // Deduct 1 from daily limit (max 3 times)
+      const nextRemaining = recordDivinationUsed();
+      setRemainingDivinations(nextRemaining);
 
       // Generate unique roll token for candy claim protection
       const token = `roll-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       setCurrentRollToken(token);
       setCurrentFortune(selected);
-
-      // Record daily if daily was available
-      if (dailyStatus.available) {
-        recordDailyUsed();
-        setDailyStatus(checkDailyFreeAvailable());
-      }
 
       // Save to history grimoire
       const updatedHistory = saveFortuneToHistory(selected);
@@ -117,7 +112,7 @@ export default function App() {
       setIsDivining(false);
       gothicAudio.playFortuneReveal();
     }, 2400);
-  }, [isDivining, dailyStatus.available]);
+  }, [isDivining]);
 
   // Handle candy claiming
   const handleClaimCandy = useCallback((rollToken: string, amount: number) => {
@@ -142,26 +137,23 @@ export default function App() {
 
   return (
     <GothicRoomBackground isDivining={isDivining}>
-      {/* Header bar */}
+      {/* Top Header bar with brand, candy count, remaining limit badge, audio toggle */}
       <HeaderNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         candyCount={candyCount}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         onOpenHistory={() => setHistoryOpen(true)}
         historyCount={historyRecords.length}
-        dailyAvailable={dailyStatus.available}
+        remainingDivinations={remainingDivinations}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col justify-center items-center py-6 px-4">
+      {/* Main Content Area with padding for bottom navigation */}
+      <main className="flex-1 flex flex-col justify-center items-center py-6 px-4 pb-28">
         {activeTab === 'crystal' && (
           <CrystalBall
             isDivining={isDivining}
             onDivinate={handleDivinate}
-            dailyAvailable={dailyStatus.available}
-            dailyNextTime={dailyStatus.nextTime}
+            remainingDivinations={remainingDivinations}
           />
         )}
 
@@ -170,9 +162,16 @@ export default function App() {
         )}
       </main>
 
+      {/* Bottom Mode Switcher Tabs (Crystal Ball vs Three Cards) */}
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        remainingDivinations={remainingDivinations}
+      />
+
       {/* Footer subtle attribution */}
-      <footer className="w-full py-3 text-center text-xs text-slate-500 font-serif border-t border-slate-900/60 select-none">
-        <p>NOCTURNE · Саффир улсын шөнийн зөгнөгч</p>
+      <footer className="w-full py-4 text-center text-xs text-slate-500 font-serif border-t border-slate-900/60 select-none pb-20">
+        <p>NOCTURNE · Саффир улсын шөнийн зөгнөгч · Өдөрт ихдээ 3 зөгнөл</p>
       </footer>
 
       {/* Fortune Reveal Modal */}
@@ -186,6 +185,7 @@ export default function App() {
             handleDivinate();
           }}
           onClaimCandy={handleClaimCandy}
+          remainingDivinations={remainingDivinations}
         />
       )}
 

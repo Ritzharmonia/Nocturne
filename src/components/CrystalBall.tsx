@@ -4,17 +4,16 @@ import { Sparkles, Moon, Eye } from 'lucide-react';
 interface CrystalBallProps {
   isDivining: boolean;
   onDivinate: () => void;
-  dailyAvailable: boolean;
-  dailyNextTime?: string;
+  remainingDivinations: number;
 }
 
 export const CrystalBall: React.FC<CrystalBallProps> = ({
   isDivining,
   onDivinate,
-  dailyAvailable,
-  dailyNextTime
+  remainingDivinations
 }) => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const hasRemaining = remainingDivinations > 0;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -27,10 +26,16 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
     setMousePos({ x: 0, y: 0 });
   };
 
+  const handleClickBall = () => {
+    if (!isDivining && hasRemaining) {
+      onDivinate();
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center max-w-xl mx-auto px-4 py-4 text-center">
+    <div className="flex flex-col items-center justify-center max-w-xl mx-auto px-4 py-3 text-center pb-20">
       {/* Title & Introduction in Mongolian as requested */}
-      <div className="mb-4 lg:mb-6">
+      <div className="mb-4 lg:mb-5">
         <div className="inline-flex items-center gap-2 text-cyan-400 text-xs tracking-widest font-gothic mb-1">
           <Moon className="w-3.5 h-3.5 text-cyan-400" />
           <span>САФФИР УЛС</span>
@@ -42,15 +47,15 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
         <p className="text-sky-300/90 text-sm lg:text-base font-gothic tracking-wide mt-1">
           Шөнийн нууцыг тайлах зөгнөгч
         </p>
-        <p className="text-slate-300 italic text-base lg:text-lg max-w-md mx-auto mt-2 font-serif text-shadow">
+        <p className="text-slate-300 italic text-base lg:text-lg max-w-md mx-auto mt-1 font-serif text-shadow">
           «Нааш ир, аялагч минь. Чиний ирээдүйг шөнө өөрөө өгүүлнэ.»
         </p>
       </div>
 
       {/* Interactive Crystal Ball Container */}
       <div
-        className="relative group cursor-pointer my-2 select-none"
-        onClick={() => !isDivining && onDivinate()}
+        className={`relative group my-2 select-none ${hasRemaining ? 'cursor-pointer' : 'cursor-not-allowed opacity-90'}`}
+        onClick={handleClickBall}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         role="button"
@@ -58,7 +63,7 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
         aria-label="Болор бөмбөлгөөр зөгнүүлэх"
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            if (!isDivining) onDivinate();
+            handleClickBall();
           }
         }}
       >
@@ -67,7 +72,9 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
           className={`absolute -inset-10 rounded-full transition-all duration-700 pointer-events-none blur-3xl ${
             isDivining
               ? 'bg-gradient-to-r from-cyan-500/60 via-sky-400/50 to-indigo-600/60 scale-125'
-              : 'bg-gradient-to-r from-cyan-500/25 via-blue-600/20 to-purple-700/20 group-hover:scale-110 group-hover:opacity-80'
+              : hasRemaining
+                ? 'bg-gradient-to-r from-cyan-500/25 via-blue-600/20 to-purple-700/20 group-hover:scale-110 group-hover:opacity-80'
+                : 'bg-slate-700/15'
           }`}
         />
 
@@ -88,7 +95,7 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
         {/* The Crystal Ball Sphere */}
         <div 
           className={`relative w-56 h-56 lg:w-68 lg:h-68 rounded-full overflow-hidden transition-all duration-500 shadow-2xl ${
-            isDivining ? 'scale-105' : 'group-hover:scale-[1.03]'
+            isDivining ? 'scale-105' : hasRemaining ? 'group-hover:scale-[1.03]' : ''
           }`}
           style={{
             background: 'radial-gradient(circle at 45% 35%, #0e2246 0%, #061129 45%, #020511 85%, #000207 100%)',
@@ -174,19 +181,15 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
 
         {/* Ornate Victorian Pedestal Stand below ball */}
         <div className="relative -mt-6 mx-auto w-36 lg:w-44 flex flex-col items-center pointer-events-none z-10">
-          {/* Metal cup supporting the ball */}
           <div className="w-28 lg:w-34 h-6 bg-gradient-to-r from-zinc-800 via-slate-600 to-zinc-900 rounded-b-2xl border-t border-slate-400/50 shadow-lg relative">
             <div className="absolute -top-1 inset-x-3 h-1.5 bg-gradient-to-r from-zinc-700 via-sky-300/40 to-zinc-800 rounded-full" />
-            {/* Victorian filigree engraving */}
             <div className="flex justify-around items-center h-full px-3 text-[10px] text-slate-400">
               <span>❧</span>
               <span>❖</span>
               <span>❧</span>
             </div>
           </div>
-          {/* Stem of pedestal */}
           <div className="w-10 lg:w-12 h-6 bg-gradient-to-r from-zinc-900 via-slate-700 to-zinc-900 border-x border-slate-500/30 shadow-inner" />
-          {/* Ornate Base */}
           <div className="w-36 lg:w-44 h-5 bg-gradient-to-r from-zinc-950 via-slate-800 to-zinc-950 rounded-b-lg border-t-2 border-slate-400/40 shadow-2xl flex items-center justify-center">
             <div className="w-24 h-1 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
           </div>
@@ -194,37 +197,46 @@ export const CrystalBall: React.FC<CrystalBallProps> = ({
       </div>
 
       {/* Main Action Button in Mongolian: [БОЛОР БӨМБӨЛГӨӨР ЗӨГНҮҮЛЭХ] */}
-      <div className="mt-5 lg:mt-6 w-full max-w-sm flex flex-col items-center gap-2">
+      <div className="mt-4 lg:mt-5 w-full max-w-sm flex flex-col items-center gap-2">
         <button
           onClick={onDivinate}
-          disabled={isDivining}
+          disabled={isDivining || !hasRemaining}
           className={`w-full relative group py-3 px-6 rounded-md font-gothic tracking-widest text-sm lg:text-base font-semibold transition-all duration-300 shadow-xl overflow-hidden border ${
             isDivining
               ? 'bg-slate-800/80 border-slate-600 text-slate-400 cursor-wait'
-              : 'bg-gradient-to-r from-[#09153a] via-[#102359] to-[#09153a] border-cyan-400/60 text-cyan-100 hover:border-cyan-300 hover:text-white hover:shadow-[0_0_25px_rgba(56,189,248,0.5)] active:scale-[0.98]'
+              : !hasRemaining
+                ? 'bg-slate-900/80 border-slate-700 text-slate-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-[#09153a] via-[#102359] to-[#09153a] border-cyan-400/60 text-cyan-100 hover:border-cyan-300 hover:text-white hover:shadow-[0_0_25px_rgba(56,189,248,0.5)] active:scale-[0.98]'
           }`}
         >
-          {/* Button ambient sweep effect */}
-          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent pointer-events-none" />
+          {hasRemaining && (
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent pointer-events-none" />
+          )}
 
           <div className="relative flex items-center justify-center gap-2">
-            <Sparkles className={`w-4 h-4 ${isDivining ? 'animate-spin text-cyan-400' : 'text-cyan-300'}`} />
+            <Sparkles className={`w-4 h-4 ${isDivining ? 'animate-spin text-cyan-400' : hasRemaining ? 'text-cyan-300' : 'text-slate-500'}`} />
             <span>
-              {isDivining ? 'ШӨНИЙН НУУЦ ТАЙЛАГДАЖ БАЙНА...' : 'БОЛОР БӨМБӨЛГӨӨР ЗӨГНҮҮЛЭХ'}
+              {isDivining 
+                ? 'ШӨНИЙН НУУЦ ТАЙЛАГДАЖ БАЙНА...' 
+                : hasRemaining 
+                  ? `БОЛОР БӨМБӨЛГӨӨР ЗӨГНҮҮЛЭХ (${remainingDivinations}/3)` 
+                  : 'ӨНӨӨДРИЙН ЗӨГНӨЛИЙН ЭРХ ДУУССАН (0/3)'}
             </span>
           </div>
         </button>
 
-        {/* Daily Free Status text (Clean, unboxed as per constitution) */}
+        {/* 3-limit status notice in clean unboxed typography */}
         <div className="text-xs text-slate-400 font-serif flex items-center justify-center gap-1.5 mt-1">
-          {dailyAvailable ? (
+          {hasRemaining ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping inline-block" />
-              <span className="text-cyan-300 font-medium">Өдрийн үнэгүй онцгой зөгнөл бэлэн байна</span>
+              <span className="text-cyan-300 font-medium">
+                Ихдээ 3 удаа зөгнүүлнэ (Үлдсэн эрх: {remainingDivinations}/3)
+              </span>
             </>
           ) : (
-            <span className="text-slate-400">
-              Өнөөдрийн үнэгүй зөгнөл ашиглагдсан ({dailyNextTime} сэргэнэ)
+            <span className="text-rose-400/90 font-medium">
+              Өдөрт ихдээ 3 удаа зөгнүүлнэ. Таны 3 эрх дууссан байна.
             </span>
           )}
         </div>

@@ -9,6 +9,7 @@ interface FortuneDisplayProps {
   onClose: () => void;
   onAskAgain: () => void;
   onClaimCandy: (rollToken: string, amount: number) => void;
+  remainingDivinations: number;
 }
 
 export const FortuneDisplay: React.FC<FortuneDisplayProps> = ({
@@ -16,7 +17,8 @@ export const FortuneDisplay: React.FC<FortuneDisplayProps> = ({
   rollToken,
   onClose,
   onAskAgain,
-  onClaimCandy
+  onClaimCandy,
+  remainingDivinations
 }) => {
   const [justClaimed, setJustClaimed] = useState(false);
 
@@ -169,16 +171,25 @@ export const FortuneDisplay: React.FC<FortuneDisplayProps> = ({
         {/* Action Buttons: "Дахин зөгнүүлэх" (Ask Again in Mongolian) */}
         <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
           <button
-            onClick={onAskAgain}
-            className="w-full py-2.5 px-4 rounded font-gothic tracking-wider text-sm font-medium bg-[#132247] hover:bg-[#1a2f63] border border-cyan-400/50 text-cyan-200 hover:text-white transition-all shadow flex items-center justify-center gap-2 active:scale-98"
+            onClick={remainingDivinations > 0 ? onAskAgain : undefined}
+            disabled={remainingDivinations <= 0}
+            className={`w-full py-2.5 px-4 rounded font-gothic tracking-wider text-sm font-medium transition-all shadow flex items-center justify-center gap-2 ${
+              remainingDivinations > 0
+                ? 'bg-[#132247] hover:bg-[#1a2f63] border border-cyan-400/50 text-cyan-200 hover:text-white active:scale-98 cursor-pointer'
+                : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed opacity-80'
+            }`}
           >
-            <RotateCcw className="w-4 h-4 text-cyan-400" />
-            <span>Дахин зөгнүүлэх</span>
+            <RotateCcw className={`w-4 h-4 ${remainingDivinations > 0 ? 'text-cyan-400' : 'text-slate-600'}`} />
+            <span>
+              {remainingDivinations > 0
+                ? `Дахин зөгнүүлэх (${remainingDivinations}/3)`
+                : 'Өнөөдрийн 3 эрх дууссан'}
+            </span>
           </button>
 
           <button
             onClick={onClose}
-            className="w-full sm:w-auto py-2.5 px-6 rounded font-gothic tracking-wider text-sm text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+            className="w-full sm:w-auto py-2.5 px-6 rounded font-gothic tracking-wider text-sm text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors cursor-pointer"
           >
             Хаах
           </button>
